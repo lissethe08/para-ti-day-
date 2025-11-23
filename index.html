@@ -1,174 +1,194 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Para ti ❤️</title>
-
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Campo de Flores - Animación</title>
 <style>
-  body {
-    margin: 0;
-    height: 100vh;
-    background: #05050a;
-    overflow: hidden;
-    font-family: "Poppins", sans-serif;
-    color: white;
+  :root{
+    --bg:#0b1020;
+    --panel-bg: rgba(255,255,255,0.06);
+    --glass: rgba(255,255,255,0.03);
+    --accent: #ffd36b;
+  }
+  html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+  body{
+    display:flex;flex-direction:column;gap:10px;
+    background: radial-gradient(ellipse at 30% 10%, rgba(255,255,255,0.02), transparent 10%),
+                linear-gradient(180deg,#081027 0%, #071428 50%, #061a2a 100%);
+    color:#fff;overflow:hidden;
   }
 
-  /* ⭐ Fondo de estrellas */
-  .stars {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    background: url("https://raw.githubusercontent.com/itsron717/starfield/master/stars.png");
-    background-size: cover;
-    opacity: 0.6;
-    pointer-events: none;
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 18px;border-radius:10px;margin:10px;
+    background:var(--panel-bg);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.35);
   }
+  header h1{margin:0;font-size:16px;letter-spacing:0.3px}
+  .controls{display:flex;gap:8px;align-items:center;}
+  .controls label{font-size:13px;color:#dfe7ff66}
+  input[type=range]{-webkit-appearance:none;height:6px;border-radius:999px;background:linear-gradient(90deg,#ffd36b,#ff7ab6);}
+  input[type=number]{width:64px;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff}
+  button{padding:7px 10px;border-radius:8px;border:0;background:var(--accent);color:#000;font-weight:600;cursor:pointer}
 
-  /* Pantalla inicial */
-  #intro {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(3px);
-    transition: opacity 0.8s ease;
-  }
+  main{flex:1;position:relative;margin:6px;border-radius:12px;overflow:hidden;margin-bottom:16px}
+  canvas{display:block;width:100%;height:100%}
 
-  #intro h1 {
-    font-size: 32px;
-    font-weight: 600;
-    text-align: center;
-  }
-
-  #intro button {
-    background: #ff79c6;
-    color: white;
-    border: 0;
-    padding: 12px 24px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: 0.3s;
-  }
-
-  #intro button:hover {
-    background: #ff92d4;
-  }
-
-  /* Canvas oculto hasta que se abra */
-  #flowersCanvas {
-    width: 100%;
-    height: 100%;
-    display: none;
-  }
+  footer{font-size:12px;color:#cfe3ff88;padding:6px 18px}
+  .help{opacity:0.9;font-size:13px}
 </style>
 </head>
 <body>
+  <header>
+    <h1>Campo de Flores — animación con canvas</h1>
+    <div class="controls">
+      <label>Flores <input id="countRange" type="range" min="10" max="300" value="120"></label>
+      <input id="countNum" type="number" min="10" max="600" value="120">
+      <label>Velocidad <input id="speedRange" type="range" min="0.1" max="3" step="0.1" value="1"></label>
+      <button id="shuffle">Cambiar paleta</button>
+    </div>
+  </header>
 
-<div class="stars"></div>
+  <main>
+    <canvas id="flowers"></canvas>
+  </main>
 
-<!-- Pantalla inicial -->
-<div id="intro">
-  <h1>Tengo algo para ti</h1>
-  <button onclick="startFlowers()">Abrir</button>
-</div>
-
-<!-- Lienzo de flores -->
-<canvas id="flowersCanvas"></canvas>
+  <footer>
+    <div class="help">Haz clic para que las flores se agrupen donde haces click. Usa "Cambiar paleta" para otros colores.</div>
+  </footer>
 
 <script>
-/* Mostrar animación al presionar "Abrir" */
-function startFlowers() {
-  document.getElementById("intro").style.opacity = 0;
-  setTimeout(() => {
-    document.getElementById("intro").style.display = "none";
-    document.getElementById("flowersCanvas").style.display = "block";
-    startAnimation();
-  }, 800);
+const canvas = document.getElementById('flowers');
+const ctx = canvas.getContext('2d', {alpha:true});
+let DPR = Math.max(1, window.devicePixelRatio || 1);
+
+function resize(){
+  DPR = Math.max(1, window.devicePixelRatio || 1);
+  const w = canvas.clientWidth || innerWidth;
+  const h = canvas.clientHeight || (innerHeight - 140);
+  canvas.width = Math.floor(w * DPR);
+  canvas.height = Math.floor(h * DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+const palettes = [
+  ['#ffd36b','#ff7ab6','#ffb3e6','#9be7ff','#ffe7a6'],
+  ['#9be7ff','#74f59a','#ffd36b','#ff9b9b','#bda4ff'],
+  ['#ff9b9b','#ffd36b','#ff7ab6','#ffd8b6','#c8ffea'],
+  ['#ffb3e6','#ffd36b','#8fd3ff','#b1ff9a','#f7c6ff'],
+  ['#a2d2ff','#ffd6b5','#ffc6e2','#d1ffd6','#fff7a6']
+];
+let currentPalette = palettes[0];
+
+function shufflePalette(){
+  currentPalette = palettes[Math.floor(Math.random()*palettes.length)];
 }
 
-/* ------------------ ANIMACIÓN DE FLORES ------------------ */
-
-function startAnimation() {
-  const canvas = document.getElementById("flowersCanvas");
-  const ctx = canvas.getContext("2d", { alpha: true });
-
-  let DPR = Math.max(1, window.devicePixelRatio || 1);
-
-  function resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    canvas.width = w * DPR;
-    canvas.height = h * DPR;
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+class Flower {
+  constructor(w,h){
+    this.reset(w,h);
   }
-  resize();
-  window.addEventListener("resize", resize);
+  reset(w,h){
+    this.w=w; this.h=h;
+    this.x = Math.random()*w;
+    this.y = h + Math.random()*200;
+    this.speed = 0.3 + Math.random()*0.8;
+    this.amp = 15 + Math.random()*20;
+    this.phase = Math.random()*Math.PI*2;
+    this.size = 5 + Math.random()*12;
+    this.color = currentPalette[Math.floor(Math.random()*currentPalette.length)];
+    this.targetX = this.x;
+    this.targetY = this.y;
+  }
+  update(dt){
+    this.phase += 0.02*dt;
+    this.y -= this.speed*dt;
+    this.x += Math.sin(this.phase)*0.3;
 
-  const palettes = [
-    ['#ffd36b','#ff7ab6','#ffb3e6','#9be7ff','#ffe7a6'],
-    ['#9be7ff','#74f59a','#ffd36b','#ff9b9b','#bda4ff'],
-    ['#ff9b9b','#ffd36b','#ff7ab6','#ffd8b6','#c8ffea']
-  ];
+    this.x += (this.targetX - this.x)*0.02*dt;
+    this.y += (this.targetY - this.y)*0.02*dt;
 
-  let currentPalette = palettes[0];
-
-  class Flower {
-    constructor(w, h) {
-      this.reset(w, h);
-    }
-    reset(w, h) {
-      this.w = w; this.h = h;
-      this.x = Math.random() * w;
-      this.y = h + Math.random() * 100;
-      this.speed = 0.4 + Math.random() * 0.9;
-      this.size = 4 + Math.random() * 10;
-      this.phase = Math.random() * Math.PI * 2;
-      this.color = currentPalette[Math.floor(Math.random() * currentPalette.length)];
-    }
-    update() {
-      this.phase += 0.02;
-      this.y -= this.speed;
-      this.x += Math.sin(this.phase) * 0.3;
-
-      if (this.y < -50) this.reset(this.w, this.h);
-    }
-    draw(ctx) {
-      ctx.save();
-      ctx.translate(this.x, this.y);
-      for (let i = 0; i < 6; i++) {
-        ctx.rotate(Math.PI / 3);
-        ctx.beginPath();
-        ctx.ellipse(0, this.size, this.size*0.4, this.size*1.1, 0, 0, Math.PI*2);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-      }
+    if (this.y < -50) this.reset(this.w,this.h);
+  }
+  draw(ctx){
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    for (let i=0;i<6;i++){
+      ctx.rotate(Math.PI/3);
       ctx.beginPath();
-      ctx.arc(0, 0, this.size * 0.45, 0, Math.PI * 2);
-      ctx.fillStyle = "#fff";
+      ctx.ellipse(0, this.size, this.size*0.4, this.size*1.1, 0, 0, Math.PI*2);
+      ctx.fillStyle = this.color;
       ctx.fill();
-      ctx.restore();
     }
+    ctx.beginPath();
+    ctx.arc(0,0,this.size*0.55,0,Math.PI*2);
+    ctx.fillStyle="#fff";
+    ctx.fill();
+    ctx.restore();
   }
-
-  const flowers = [];
-  for (let i = 0; i < 150; i++) flowers.push(new Flower(canvas.width, canvas.height));
-
-  function loop() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    flowers.forEach(f => { f.update(); f.draw(ctx); });
-    requestAnimationFrame(loop);
-  }
-  loop();
 }
 
+let flowers=[];
+let count = 120;
+let speed = 1;
+let last=0;
+
+function init(){
+  flowers=[];
+  for(let i=0;i<count;i++){
+    flowers.push(new Flower(canvas.width, canvas.height));
+  }
+}
+init();
+
+canvas.addEventListener('click', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX-rect.left)*DPR;
+  const y = (e.clientY-rect.top)*DPR;
+  flowers.forEach(f=>{
+    f.targetX = x;
+    f.targetY = y;
+  });
+});
+
+document.getElementById('shuffle').onclick = ()=>{
+  shufflePalette();
+};
+
+document.getElementById('countRange').oninput = e=>{
+  count = parseInt(e.target.value);
+  document.getElementById('countNum').value = count;
+  init();
+};
+document.getElementById('countNum').oninput = e=>{
+  count = parseInt(e.target.value);
+  document.getElementById('countRange').value = count;
+  init();
+};
+
+document.getElementById('speedRange').oninput = e=>{
+  speed = parseFloat(e.target.value);
+};
+
+function loop(ts){
+  const dt = (ts-last)*0.08*speed;
+  last=ts;
+
+  ctx.clearRect(0,0,canvas.width, canvas.height);
+
+  for(const f of flowers){
+    f.update(dt);
+    f.draw(ctx);
+  }
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
 </script>
+
 </body>
 </html>
